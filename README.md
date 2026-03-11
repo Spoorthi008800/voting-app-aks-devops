@@ -1,168 +1,220 @@
-🧩 Project: End-to-End DevOps CI/CD Implementation on Azure Kubernetes Services(AKS) with Terraform, GitOps and Monitoring
+# 🗳️ End-to-End DevOps Pipeline on Azure Kubernetes Service (AKS)
 
-📘 Overview
+**Terraform · Azure DevOps · Argo CD · Prometheus · Grafana · Docker · Kubernetes**
 
-This project demonstrates a complete DevOps lifecycle on Microsoft Azure, showcasing automation and orchestration skills for modern cloud-native applications.
+---
 
-Base Application: Example Voting App by Docker Samples (open-source microservices demo).
+## 🔍 What This Project Demonstrates
 
-Learning Foundation: Inspired by Abhishek Veeramalla's DevOps tutorials for core workflow understanding.
+A fully automated, production-grade DevOps pipeline built from scratch on Microsoft Azure — covering infrastructure provisioning, CI/CD automation, GitOps delivery, container orchestration, and live monitoring across **12 running pods** and **5 application services**.
 
-Infrastructure as Code: Terraform modules for Azure (RG, AKS, ACR) with remote state in Azure Storage
+This is not a deployment demo. It includes real infrastructure decisions, multi-layer debugging, and documented failure recovery — the kind of work that happens in production environments.
 
-CI/CD Automation: Azure DevOps YAML pipelines for build, push to ACR, and manifest updates
+**Base application:** [Example Voting App](https://github.com/dockersamples/example-voting-app) by Docker Samples (open-source microservices demo used as the application layer).
 
-GitOps Delivery: ArgoCD configuration for sync, health monitoring
+---
 
-Monitoring Setup: Prometheus and Grafana deployment with node/pod metrics (app metrics troubleshooting documented)
+## 🏗️ Architecture Overview
 
-Operational Focus: This isn't just a deployment demo—it includes real troubleshooting scenarios and documented failure recovery, proving job-ready DevOps skills.
+![Project Workflow](docs/screenshots/Project-workflow.PNG)
 
-**My Contributions:** 
+| Layer | Technology | Purpose |
+|---|---|---|
+| Infrastructure | Terraform + Azure | Provision AKS, ACR, VNet, Resource Group |
+| CI/CD | Azure DevOps Pipelines | Build, tag, push Docker images to ACR |
+| GitOps | Argo CD | Sync manifests from GitHub → AKS automatically |
+| Orchestration | Kubernetes (AKS) | Run and manage all 12 pods across 5 services |
+| Monitoring | Prometheus + Grafana | System supervision, dashboards, metrics visualisation |
+| Security | RBAC, Service Principals, Registry Secrets | Secure access across all layers |
 
-All infrastructure, automation, and operational work in this repository:
+---
 
-**Infrastructure-as-Code (IaC)**  
-Terraform modules for Azure Resource Group, AKS Cluster, and ACR with remote state in Azure Storage.
+## ⚙️ Infrastructure as Code — Terraform
 
-**CI/CD Automation**  
-Azure DevOps YAML pipelines for each microservice (Vote, Result, Worker) to build Docker images, push to ACR, and auto-deploy to AKS.
+Terraform provisions the entire Azure environment from scratch:
 
-**GitOps Integration**  
-ArgoCD implementation for continuous delivery with declarative Git-based deployment and manifest version control.
+- Azure Resource Group
+- Azure Kubernetes Service (AKS) cluster
+- Azure Container Registry (ACR)
+- Virtual Network (VNet) and subnets
+- Remote state stored securely in Azure Storage Account with state locking
 
-**Container Orchestration**  
-Kubernetes manifests deployment for all services (Vote, Result, Worker, Redis, Postgres) on AKS.
+![Terraform Plan](docs/screenshots/Terraform-plan.png)
+![Terraform Plan 2](docs/screenshots/Terraform-plan2.png)
+![Azure Resources](docs/screenshots/Azureresources.png)
+![Azure Network Resources](docs/screenshots/Azurenetworkresources.png)
 
-**Observability & Monitoring**  
-Prometheus Operator for metrics scraping and Grafana dashboards for cluster/container health visualization.
+---
 
-**Security & Access Control**  
-Azure service principals, Docker registry secrets, and AKS RBAC configuration for secure deployments.
+## 🔁 CI/CD Pipeline — Azure DevOps
 
-**Troubleshooting & Operations**  
-Resolved image-pull issues, service exposure problems, and Prometheus scraping errors with documented solutions.
+Three independent YAML pipelines — one per microservice (Vote, Result, Worker):
 
+1. Triggered on code commit to GitHub
+2. Builds Docker image for the microservice
+3. Pushes tagged image to Azure Container Registry (ACR)
+4. Updates Kubernetes manifests with new image tag
 
-Evidence:
-- [Architecture Diagram](docs/screenshots/Project_workflow.png)
-- [Screenshot Index](docs/screenshot-index.md)
-- [Pipelines (YAML)](pipelines/)
-- [Kubernetes Specs](k8s-specifications/)
-- [Terraform Files](infra/)
+![Pipelines](docs/screenshots/Pipelines.PNG)
+![Azure Repo](docs/screenshots/Azure-repo.png)
+![Azure Repo Terraform](docs/screenshots/Azure-repo-tf.png)
+![ACR Vote App](docs/screenshots/ACR-voteapp.png)
 
+---
 
-🧱 Architecture Overview
+## 🚀 GitOps Delivery — Argo CD
 
-![Architecture Diagram](docs/screenshots/Project-workflow.PNG)
+Argo CD continuously monitors the GitHub repository and syncs any manifest changes directly to the AKS cluster — no manual deployments.
 
-1. Infrastructure Layer
+- Declarative, Git-based deployment model
+- Drift detection: Argo CD shows `OutOfSync` status with a full diff between desired (Git) and live (cluster) state
+- Rollback: executed via Argo CD history with immediate health verification
 
-Terraform provisions:
+---
 
-Azure Resource Group
+## 🐳 Kubernetes — Running State
 
-Azure Kubernetes Service (AKS) Cluster
+All 12 pods healthy and running across 5 application services + Argo CD components:
 
-Azure Container Registry (ACR)
+```
+NAME                                          READY   STATUS    RESTARTS
+argocd-application-controller-0               1/1     Running   0
+argocd-applicationset-controller-xxxx         1/1     Running   0
+argocd-dex-server-xxxx                        1/1     Running   2
+argocd-notifications-controller-xxxx          1/1     Running   0
+argocd-redis-xxxx                             1/1     Running   0
+argocd-repo-server-xxxx                       1/1     Running   0
+argocd-server-xxxx                            1/1     Running   0
+db-xxxx                                       1/1     Running   0
+metrics-server-xxxx                           1/1     Running   0
+redis-xxxx                                    1/1     Running   0
+result-xxxx                                   1/1     Running   0
+vote-xxxx                                     1/1     Running   0
+worker-xxxx                                   1/1     Running   0
+```
 
-Backend state securely stored in Azure Storage Account.
+![Kubernetes Pods](docs/screenshots/K8s-pods.png)
+![Kubernetes Services Output](docs/screenshots/K8s-svc-output.png)
+![Vote Deployment](docs/screenshots/K8s-votedeployment.png)
+![Load Balancers](docs/screenshots/Az-LoadBalancers.png)
+![Inbound Rules](docs/screenshots/Az-inboundrules.png)
 
+---
 
-2. CI/CD Layer
+## 📊 System Supervision — Prometheus & Grafana
 
-Azure Pipelines automates:
+Prometheus and Grafana deployed on AKS for live system supervision across all running workloads.
 
-Building Docker images for vote, result, and worker apps.
+### ✅ What's Working
 
-Pushing images to ACR.
+**Prometheus targets UP** — `metrics-server` and `postgres-exporter` ServiceMonitors successfully scraping at 28–30ms:
 
-Updating Kubernetes manifests with new image tags.
+![Prometheus Targets Up](docs/screenshots/prometheuspodsup.png)
 
-ArgoCD provides GitOps:
+**Grafana live dashboard** — `process_cpu_seconds_total` visualised in real time from running containers:
 
-Continuously syncs manifests from GitHub to AKS.
+![Grafana CPU Dashboard](docs/screenshots/grafanavisual.png)
 
+### 🔍 Troubleshooting in Progress
 
-3. Monitoring Layer
+**Prometheus targets DOWN** — `vote-service-monitor` returning `connection refused` on ports 8080/8081. Root cause traced to ServiceMonitor label selector mismatch and missing RBAC permissions for the vote app's metrics endpoint. Fix documented in Future Enhancements:
 
-Prometheus and Grafana deployed on AKS for observability.
+![Prometheus Targets Down](docs/screenshots/prometheuspodsdown.png)
 
-System-level metrics (node, pod, exporter) are successfully scraped and visualized.
+This is real operational debugging — identifying exactly which targets are failing, why, and what needs to change. The fact that some targets are UP confirms the Prometheus stack itself is healthy; the issue is isolated to application-level ServiceMonitor configuration.
 
-Prometheus <-> vote app “connection refused” issue highlights pending configuration and service discovery adjustments.
+---
 
+## 🔐 Security & Access Control
 
-🔁 Workflow Summary
+- Azure Service Principals scoped to CI/CD pipeline operations
+- Docker registry secrets for AKS → ACR image pull authentication
+- Kubernetes RBAC policies enforcing least-privilege access
+- Terraform remote state secured in Azure Storage with restricted access
 
-1. Developer commits code → GitHub repository.
+---
 
-2. Azure Pipelines triggers build, pushes images to ACR.
+## 🐛 Real Troubleshooting — What Actually Happened
 
-3. Updated manifests committed → ArgoCD detects and deploys to AKS.
+This project involved real infrastructure debugging, not just guided steps:
 
-4. Prometheus + Grafana monitor workloads in (partial) real time.
+**Azure Public IP Exhaustion**
+Result page failed to expose publicly after multiple deployments. Root cause: orphaned public IPs from deleted resources were consuming the subscription allocation. Fix: audited all public IPs in the resource group, deleted orphaned allocations, then traced a secondary issue to health probe misconfiguration and frontend IP settings in the load balancer — corrected both to restore service exposure.
 
+**Kubernetes Pod Failures**
+Diagnosed ImagePull errors (ACR authentication), crashlooping containers, and YAML indentation errors in pipeline configs using `kubectl logs` and `kubectl describe` — developed a systematic multi-layer troubleshooting approach.
 
+**Prometheus Scraping Issue**
+Node and pod metrics operational. Application-level metrics blocked by `connection refused` — traced to ServiceMonitor configuration and RBAC permissions. Documented for resolution in next iteration.
 
-🧠 Tools & Technologies
-           
-------------+---------------------
+---
 
-1. IaC -  Terraform          
-2. Cloud -  Microsoft Azure    
-3. CI/CD  -  Azure Pipelines    
-4. GitOps  -  ArgoCD             
-5. Containers - Docker, Kubernetes 
-6. Monitoring - Prometheus, Grafana
-7. SCM -  GitHub             
+## 🔄 End-to-End Workflow
 
+Code commit → GitHub
+       ↓
+Azure DevOps Pipeline triggers
+       ↓
+Docker image built + pushed to ACR
+       ↓
+Kubernetes manifests updated with new image tag
+       ↓
+Argo CD detects change → syncs to AKS
+       ↓
+Prometheus + Grafana monitor running workloads
 
-📚 References
 
-Base application: https://github.com/dockersamples/example-voting-app
+![Update Shell Script](docs/screenshots/Update-shell-script.png)
 
-Tutorial inspiration: Abhishek Veeramalla – DevOps Projects Series (YouTube)
+---
 
-Note: All infrastructure, automation, pipelines, and monitoring configuration in this repo are custom and original.
+## 🛠️ Tools & Technologies
 
+| Category | Tool |
+|---|---|
+| Cloud | Microsoft Azure (AKS, ACR, VNet, Load Balancers) |
+| IaC | Terraform |
+| CI/CD | Azure DevOps YAML Pipelines |
+| GitOps | Argo CD |
+| Containers | Docker, Kubernetes, Helm |
+| Monitoring | Prometheus, Grafana |
+| Security | RBAC, Service Principals, Registry Secrets, Key Vault |
+| SCM | GitHub |
 
+---
 
-❓ FAQ
+## ❓ FAQ
 
-**Q: How do you detect configuration drift?**  
-A: ArgoCD shows "OutOfSync" status with diff between desired (Git) and live (cluster) state.
+**Q: How do you detect configuration drift?**
+Argo CD shows `OutOfSync` status with a full diff between the desired state in Git and the live cluster state.
 
-**Q: How do you handle failed deployments?**  
-A: Investigate with ArgoCD health/diff, check history, execute rollback, verify healthy state.
+**Q: How do you handle a failed deployment?**
+Investigate using Argo CD health and diff views, check deployment history, execute rollback to last stable version, verify healthy pod status.
 
-**Q: How are images tagged and promoted?**  
-A: CI pipeline builds and tags images, pushes to ACR, updates manifests with new tags.
+**Q: How are images tagged and promoted?**
+CI pipeline builds and tags each image with the pipeline run ID, pushes to ACR, and updates the Kubernetes manifest with the new tag — Argo CD picks up the change automatically.
 
-**Q: How is Terraform state secured?**  
-A: Remote backend in Azure Storage Account with restricted access and state locking.
+**Q: How is Terraform state secured?**
+Remote backend in Azure Storage Account with restricted IAM access and state locking to prevent concurrent modifications.
 
-**Q: What's the monitoring status?**  
-A: Node/pod metrics operational; app metrics pending (ServiceMonitor config + RBAC verification needed).
+**Q: Why is some monitoring partial?**
+Node and pod metrics are fully operational. Application-level metrics scraping is pending a ServiceMonitor + RBAC fix — documented in Future Enhancements.
 
+---
 
-## 🎯 Key Learning Outcomes
+## 🔮 Future Enhancements
 
-- **Real-world DevOps workflows:** Hands-on experience with CI/CD pipelines, Infrastructure-as-Code, and GitOps methodologies
-- **Azure cloud expertise:** Practical knowledge of AKS, ACR, resource management, and service integration  
-- **Production troubleshooting:** Debugging authentication, connectivity, and monitoring issues typical in enterprise environments
-- **Operational mindset:** Focus on stability, rollback procedures, and documentation for maintainable systems
+- [ ] Fix Prometheus `connection refused` for application-level metrics (ServiceMonitor + RBAC)
+- [ ] Implement Prometheus Alertmanager for automated incident alerting
+- [ ] Extend Grafana dashboards with application-level performance metrics
+- [ ] Add Helm chart packaging for simplified deployment
+- [ ] Implement network policies for pod-level traffic isolation
 
+---
 
-🧩 Future Enhancements
+## 📚 References
 
+- Base application: [dockersamples/example-voting-app](https://github.com/dockersamples/example-voting-app)
+- DevOps workflow concepts: [Abhishek Veeramalla – DevOps Projects Series](https://www.youtube.com/@AbhishekVeeramalla) (YouTube)
 
-1. Fix Prometheus “connection refused” for application metrics.
-
-2. Implement Prometheus Alertmanager for automated alerts.
-
-3. Extend Grafana dashboards for app-level performance metrics.
-
-
-
-
+> All infrastructure, automation, pipelines, Kubernetes configuration, monitoring setup, and troubleshooting in this repository are custom-built and original work.
