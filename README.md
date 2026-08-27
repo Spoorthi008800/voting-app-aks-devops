@@ -5,6 +5,7 @@
 ---
 
 ## 🔍 What This Project Demonstrates
+Built to simulate production-grade DevOps workflows — infrastructure, automation, GitOps delivery, observability, and real troubleshooting documented throughout.
 
 A fully automated, production-grade DevOps pipeline built from scratch on Microsoft Azure — covering infrastructure provisioning, CI/CD automation, GitOps delivery, container orchestration, and live monitoring across **12 running pods** and **5 application services**.
 
